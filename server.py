@@ -180,21 +180,7 @@ def get_scan_latest(
         description="Chave do scan de fundo a ler (formato 'universe:htf:ltf'). Use o padrão a menos que múltiplos loops tenham sido configurados.",
     ),
 ) -> dict:
-    """
-    Lê o resultado mais recente do scan de universo completo, calculado
-    por um loop de fundo contínuo -- NÃO dispara nenhum scan novo,
-    responde em milissegundos a partir do que já está no banco.
-
-    Prefira este endpoint a `/scan?universe=all_bybit` para qualquer
-    busca ampla no mercado: o resultado pode ter alguns segundos/minutos
-    de idade (`age_seconds` no retorno), mas nunca corre risco de
-    timeout, e nunca faz o usuário esperar minutos pela resposta.
-
-    Retorna 503 se o loop de fundo ainda não completou nenhum ciclo
-    (processo acabou de subir) -- nesse caso, `/scan?universe=all_bybit`
-    ainda funciona como fallback pontual (mais lento, mas não depende
-    do loop já ter rodado).
-    """
+    """Lê o resultado mais recente do scan de universo completo (loop de fundo) -- não dispara scan novo, responde em ms. Prefira este a /scan?universe=all_bybit para buscas amplas: nunca dá timeout, mas pode estar min. desatualizado (age_seconds). Se 503: loop ainda não rodou; use /scan como fallback."""
     snapshot = load_scan_snapshot(scan_key)
     if snapshot is None:
         raise HTTPException(
