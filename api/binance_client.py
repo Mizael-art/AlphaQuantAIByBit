@@ -43,6 +43,14 @@ class BinanceAPIError(Exception):
     """Erro genérico levantado quando a Binance retorna uma resposta inválida."""
 
 
+class BinancePermanentError(BinanceAPIError):
+    """
+    Erro 4xx (exceto 429) -- o request em si é inválido (símbolo
+    inexistente, parâmetro errado, etc.). Retentar nunca resolve, então
+    esse erro pula o retry/backoff em `_request`.
+    """
+
+
 class BinanceClient:
     """
     Cliente HTTP para os endpoints públicos (Market Data) da Binance.
@@ -84,7 +92,17 @@ class BinanceClient:
                 # A Binance retorna erros de negócio com status 4xx/5xx
                 # e um corpo JSON no formato {"code": -1121, "msg": "..."}.
                 if response.status_code != 200:
-                    raise BinanceAPIError(
+                    error_cls = (
+                        # 4xx (exceto 429, rate limit) é erro PERMANENTE:
+                        # símbolo inexistente, parâmetro inválido, etc.
+                        # Tentar de novo nunca resolve, então não entra
+                        # no retry/backoff (economiza até ~4.5s por
+                        # símbolo inválido, todo ciclo do scan).
+                        BinancePermanentError
+                        if 400 <= response.status_code < 500 and response.status_code != 429
+                        else BinanceAPIError
+                    )
+                    raise error_cls(
                         f"Binance retornou status {response.status_code} "
                         f"para {endpoint}: {response.text}"
                     )
@@ -101,6 +119,10 @@ class BinanceClient:
 
                 return data
 
+            except BinancePermanentError as exc:
+                # Erro permanente -- sai do retry na hora, sem backoff.
+                last_error = exc
+                break
             except (requests.RequestException, BinanceAPIError) as exc:
                 last_error = exc
                 if attempt < MAX_RETRIES:
@@ -109,7 +131,7 @@ class BinanceClient:
 
         # Se chegou aqui, todas as tentativas falharam.
         raise BinanceAPIError(
-            f"Falha ao consultar {endpoint} após {MAX_RETRIES} tentativas: {last_error}"
+            f"Falha ao consultar {endpoint} após {attempt} tentativa(s): {last_error}"
         ) from last_error
 
     # ------------------------------------------------------------------

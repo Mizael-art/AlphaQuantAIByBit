@@ -71,5 +71,10 @@ def load_scan_snapshot(scan_key: str = DEFAULT_SCAN_KEY) -> dict[str, Any] | Non
         payload = row.to_dict()
 
     finished_at = datetime.fromisoformat(payload["finished_at"])
+    if finished_at.tzinfo is None:
+        # SQLite não preserva timezone mesmo em colunas DateTime(timezone=True)
+        # -- o valor gravado sempre foi UTC (ver background_loop.py), então
+        # é seguro assumir UTC aqui em vez de deixar a subtração quebrar.
+        finished_at = finished_at.replace(tzinfo=timezone.utc)
     payload["age_seconds"] = round((datetime.now(timezone.utc) - finished_at).total_seconds(), 1)
     return payload
