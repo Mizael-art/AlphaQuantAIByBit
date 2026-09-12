@@ -1,0 +1,56 @@
+# render.yaml
+# ============
+# Blueprint para deploy automático no Render (https://render.com).
+#
+# Como usar:
+# 1. Suba este projeto para um repositório no GitHub.
+# 2. No Render: New > Blueprint > selecione o repositório.
+# 3. O Render lê este arquivo e cria o serviço automaticamente.
+#
+# Alternativa manual (sem este arquivo):
+# New > Web Service > selecione o repo >
+#   Runtime: Docker (ele detecta o Dockerfile automaticamente)
+#   Ou, sem Docker: Build Command "pip install -r requirements.txt",
+#   Start Command "uvicorn server:app --host 0.0.0.0 --port $PORT"
+
+services:
+  - type: web
+    name: alphaquant-engine
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DEBUG_MODE
+        value: "false"
+      # Fase 2 do Plano de Evolução (Setup Lifecycle + Setup Memory) --
+      # sem esta variável, o serviço cai para SQLite em arquivo local
+      # (ok para dev, mas o Render free tier tem disco efêmero -- os
+      # dados de setups seriam perdidos a cada deploy/restart).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alphaquant-db
+          property: connectionString
+
+  # Fase 7 do Plano de Evolução (Monitoring + Scheduler + Conditional
+  # Plans) -- roda scripts/run_monitoring_cycle.py periodicamente:
+  # expira setups vencidos e atualiza status (NEAR_ENTRY/INVALIDATED/
+  # TP1-3/COMPLETED) com base no preço atual de cada ativo com setup
+  # em aberto. Nota: plano free do Render não suporta Cron Jobs -- este
+  # serviço exige plano pago (Starter ou superior) para ativar.
+  - type: cron
+    name: alphaquant-monitoring-cycle
+    runtime: docker
+    plan: starter
+    schedule: "*/15 * * * *"  # a cada 15 minutos -- ajustável conforme a granularidade real precisada
+    dockerCommand: python scripts/run_monitoring_cycle.py
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alphaquant-db
+          property: connectionString
+
+databases:
+  - name: alphaquant-db
+    plan: free
+    databaseName: alphaquant
+    user: alphaquant

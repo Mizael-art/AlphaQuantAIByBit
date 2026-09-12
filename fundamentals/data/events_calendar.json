@@ -1,0 +1,38 @@
+[
+  {
+    "event_id": "fomc-2026-09-16",
+    "name": "FOMC Rate Decision",
+    "country": "US",
+    "category": "interest_rate",
+    "scheduled_at": "2026-09-16T18:00:00+00:00",
+    "importance": "high",
+    "observed_at": "2024-08-09T17:30:00+00:00",
+    "actual": null,
+    "forecast": null,
+    "previous": null
+  },
+  {
+    "event_id": "fomc-2026-10-28",
+    "name": "FOMC Rate Decision",
+    "country": "US",
+    "category": "interest_rate",
+    "scheduled_at": "2026-10-28T18:00:00+00:00",
+    "importance": "high",
+    "observed_at": "2024-08-09T17:30:00+00:00",
+    "actual": null,
+    "forecast": null,
+    "previous": null
+  },
+  {
+    "event_id": "fomc-2026-12-09",
+    "name": "FOMC Rate Decision",
+    "country": "US",
+    "category": "interest_rate",
+    "scheduled_at": "2026-12-09T19:00:00+00:00",
+    "importance": "high",
+    "observed_at": "2024-08-09T17:30:00+00:00",
+    "actual": null,
+    "forecast": null,
+    "previous": null
+  }
+]
